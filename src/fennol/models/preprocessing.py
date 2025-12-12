@@ -543,8 +543,10 @@ class GraphGenerator:
                     pbc_shifts = cell_shift_pbc[icellshift]
                     p1 = jnp.repeat(p1,nrep_vec, total_repeat_length=nvec_max)
                     p2 = jnp.repeat(p2,nrep_vec, total_repeat_length=nvec_max)
-                    if natoms.shape[0] > 1:
-                        mask_p12 = jnp.repeat(mask_p12,nrep_vec, total_repeat_length=nvec_max)
+                    mask_p12 = jnp.repeat(mask_p12,nrep_vec, total_repeat_length=nvec_max)
+
+                    mask_valid = jnp.arange(nvec_max) < nvec
+                    mask_p12 = jnp.where(mask_valid, mask_p12, False)
                 
 
         ## compute distances
