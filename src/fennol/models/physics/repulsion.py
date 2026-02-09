@@ -5,7 +5,6 @@ import flax.linen as nn
 import numpy as np
 from typing import Any, Dict, Union, Callable, Sequence, Optional, ClassVar
 from ...utils.atomic_units import au
-from ...utils.periodic_table import D3_COV_RADII, UFF_VDW_RADII
 
 
 class RepulsionZBL(nn.Module):
@@ -28,7 +27,7 @@ class RepulsionZBL(nn.Module):
     _energy_unit: str = "Ha"
     """The energy unit of the model. **Automatically set by FENNIX**"""
     proportional_regularization: bool = True
-    d: float = 0.46850 / au.ANG
+    d: float = 0.46850
     p: float = 0.23
     alphas: Sequence[float] = (3.19980, 0.94229, 0.40290, 0.20162)
     cs: Sequence[float] = (0.18175273, 0.5098655, 0.28021213, 0.0281697)
@@ -44,8 +43,7 @@ class RepulsionZBL(nn.Module):
 
         training = "training" in inputs.get("flags", {})
 
-        rijs = graph["distances"] / au.ANG
-
+        rijs = graph["distances"]
         d_ = self.d
         p_ = self.p
         assert len(self.alphas) == 4, "alphas must be a sequence of length 4"
@@ -57,10 +55,10 @@ class RepulsionZBL(nn.Module):
             d = jnp.abs(
                 self.param(
                     "d",
-                    lambda key, d: jnp.asarray(d, dtype=rijs.dtype),
+                    lambda key, d: jnp.asarray(d/au.ANG, dtype=rijs.dtype),
                     d_,
                 )
-            )
+            )*au.ANG
             p = jnp.abs(
                 self.param(
                     "p",
@@ -134,7 +132,7 @@ class RepulsionZBL(nn.Module):
 
         erep_atomic = jax.ops.segment_sum(ereppair, edge_src, species.shape[0])
 
-        energy_unit = au.get_multiplier(self._energy_unit)
+        energy_unit = au.ANG*au.get_multiplier(self._energy_unit)
         energy_key = self.energy_key if self.energy_key is not None else self.name
         output = {**inputs, energy_key: erep_atomic * energy_unit}
         if self.trainable and training:
